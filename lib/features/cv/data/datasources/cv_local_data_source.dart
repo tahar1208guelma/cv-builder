@@ -7,6 +7,8 @@ import '../../domain/models/cv_model.dart';
 class CvLocalDataSource {
   Directory? _documentsDirectory;
 
+  CvLocalDataSource({Directory? documentsDirectory}) : _documentsDirectory = documentsDirectory;
+
   Future<Directory> _getStorageDirectory() async {
     if (_documentsDirectory != null) return _documentsDirectory!;
     final appDir = await getApplicationDocumentsDirectory();
