@@ -235,11 +235,12 @@ class AcademicTemplate extends BasePdfTemplate {
                 pw.Text(
                   info.fullName.isNotEmpty ? info.fullName.toUpperCase() : cv.title.toUpperCase(),
                   textAlign: pw.TextAlign.center,
-                  style: const pw.TextStyle(
+                  // ignore: prefer_const_constructors
+                  style: pw.TextStyle(
                     fontSize: 20,
                     fontWeight: pw.FontWeight.bold,
                     letterSpacing: 1.5,
-                    color: PdfColor(0.1, 0.15, 0.25),
+                    color: const PdfColor(0.1, 0.15, 0.25),
                   ),
                 ),
                 if (info.jobTitle.isNotEmpty) ...[

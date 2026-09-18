@@ -303,7 +303,8 @@ class ModernTemplate extends BasePdfTemplate {
                   ),
                   child: pw.Text(
                     '${skill.level}/5',
-                    style: const pw.TextStyle(
+                    // ignore: prefer_const_constructors
+                    style: pw.TextStyle(
                       fontSize: 7.5,
                       color: PdfColors.white,
                       fontWeight: pw.FontWeight.bold,
