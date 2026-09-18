@@ -47,7 +47,7 @@ jobs:
         run: flutter test
 
       - name: Build Flutter macOS Application (Release)
-        run: flutter build macos --release --no-codesign
+        run: flutter build macos --release
 
       - name: Verify and package macOS Application
         run: |
