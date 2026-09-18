@@ -76,7 +76,7 @@ class ExecutiveTemplate extends BasePdfTemplate {
               children: [
                 pw.Text(
                   info.fullName.isNotEmpty ? info.fullName : cv.title,
-                  style: const pw.TextStyle(
+                  style: pw.TextStyle(
                     fontSize: 22,
                     fontWeight: pw.FontWeight.bold,
                     color: PdfColors.white,
