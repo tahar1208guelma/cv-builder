@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../cv/domain/models/cv_model.dart';
+import '../../subscription/domain/models/subscription_tier.dart';
 import '../services/pdf_font_manager.dart';
 import 'base_pdf_template.dart';
 
@@ -11,6 +12,7 @@ class CvTemplateDefinition {
   final String descriptionKey;
   final IconData icon;
   final bool isPrimary;
+  final SubscriptionTier requiredTier;
   final TemplateFactory factory;
 
   const CvTemplateDefinition({
@@ -19,8 +21,11 @@ class CvTemplateDefinition {
     required this.descriptionKey,
     required this.icon,
     this.isPrimary = true,
+    this.requiredTier = SubscriptionTier.free,
     required this.factory,
   });
+
+  bool get isFree => requiredTier == SubscriptionTier.free;
 
   BasePdfTemplate createInstance({required CvModel cv, required PdfFontBundle fonts}) {
     return factory(cv: cv, fonts: fonts);

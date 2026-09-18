@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../cv/domain/models/cv_model.dart';
+import '../../subscription/domain/models/subscription_tier.dart';
 import '../services/pdf_font_manager.dart';
 import 'academic_template.dart';
 import 'ats_friendly_template.dart';
@@ -90,6 +91,7 @@ class CvTemplateRegistry {
       descriptionKey: 'template_executive_desc',
       icon: Icons.web_asset_outlined,
       isPrimary: false,
+      requiredTier: SubscriptionTier.premium,
       factory: ({required cv, required fonts}) =>
           ExecutiveTemplate(cv: cv, fonts: fonts),
     ));

@@ -23,4 +23,7 @@ class AppConstants {
   static const String prefsAppLangKey = 'cv_builder_app_language';
   static const String prefsDefaultCvLangKey = 'cv_builder_default_cv_language';
   static const String cvStorageDir = 'cv_builder_documents';
+  static const String prefsSubscriptionStatusKey = 'cv_builder_subscription_status';
+  static const String prefsUsageMetricsKey = 'cv_builder_usage_metrics';
+  static const String prefsDevTierKey = 'cv_builder_dev_tier';
 }

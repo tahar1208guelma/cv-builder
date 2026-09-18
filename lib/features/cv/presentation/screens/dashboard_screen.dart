@@ -4,6 +4,11 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/utils/date_formatter.dart';
+import '../../../subscription/domain/models/subscription_tier.dart';
+import '../../../subscription/presentation/providers/subscription_providers.dart';
+import '../../../subscription/presentation/screens/pricing_screen.dart';
+import '../../../subscription/presentation/widgets/subscription_badge.dart';
+import '../../../subscription/presentation/widgets/upgrade_dialog.dart';
 import '../../domain/models/cv_model.dart';
 import '../providers/cv_providers.dart';
 import '../providers/settings_provider.dart';
@@ -17,6 +22,19 @@ class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   void _showNewCvDialog(BuildContext context, WidgetRef ref) {
+    final status = ref.read(subscriptionStatusProvider);
+    final entitlement = ref.read(entitlementServiceProvider);
+    final currentCount = ref.read(cvListProvider).cvs.length;
+
+    if (!entitlement.canCreateAnotherCv(tier: status.tier, currentCvCount: currentCount)) {
+      UpgradeDialog.show(
+        context,
+        requiredTier: SubscriptionTier.pro,
+        featureKey: 'feature_unlimited_cvs',
+      );
+      return;
+    }
+
     final defaultTitle = context.tr('default_cv_title');
     final titleCtrl = TextEditingController(text: defaultTitle);
     String selectedLang = ref.read(settingsProvider).defaultCvLanguage;
@@ -210,6 +228,18 @@ class DashboardScreen extends ConsumerWidget {
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
+          // Subscription Badge
+          SubscriptionBadge(
+            tier: ref.watch(subscriptionStatusProvider).tier,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const PricingScreen(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 4),
           // Theme Switcher Button
           IconButton(
             tooltip: context.tr('theme'),
@@ -267,6 +297,10 @@ class DashboardScreen extends ConsumerWidget {
     final enCount = state.cvs.where((c) => c.language == 'en').length;
     final frCount = state.cvs.where((c) => c.language == 'fr').length;
     final arCount = state.cvs.where((c) => c.language == 'ar').length;
+    final subscription = ref.watch(subscriptionStatusProvider);
+    final entitlement = ref.watch(entitlementServiceProvider);
+    final cvLimit = entitlement.getCvLimit(subscription.tier);
+    final limitDisplay = cvLimit < 0 ? '∞' : '$cvLimit';
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -307,7 +341,7 @@ class DashboardScreen extends ConsumerWidget {
                   spacing: 16,
                   runSpacing: 8,
                   children: [
-                    _buildStatPill(context.tr('total'), '$total'),
+                    _buildStatPill(context.tr('cv_usage_label'), '$total / $limitDisplay'),
                     _buildStatPill('EN (LTR)', '$enCount'),
                     _buildStatPill('FR (LTR)', '$frCount'),
                     _buildStatPill('AR (RTL)', '$arCount'),
@@ -587,6 +621,19 @@ class DashboardScreen extends ConsumerWidget {
                         padding: const EdgeInsets.all(4),
                         constraints: const BoxConstraints(),
                         onPressed: () async {
+                          final status = ref.read(subscriptionStatusProvider);
+                          final entitlement = ref.read(entitlementServiceProvider);
+                          final currentCount = ref.read(cvListProvider).cvs.length;
+
+                          if (!entitlement.canCreateAnotherCv(tier: status.tier, currentCvCount: currentCount)) {
+                            UpgradeDialog.show(
+                              context,
+                              requiredTier: SubscriptionTier.pro,
+                              featureKey: 'feature_unlimited_cvs',
+                            );
+                            return;
+                          }
+
                           await notifier.duplicateCv(cv.id);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(

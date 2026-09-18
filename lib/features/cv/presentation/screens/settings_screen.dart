@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/localization/app_locale.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../subscription/presentation/providers/subscription_providers.dart';
+import '../../../subscription/presentation/screens/pricing_screen.dart';
+import '../../../subscription/presentation/widgets/subscription_badge.dart';
+import '../../../subscription/presentation/widgets/usage_progress_indicator.dart';
+import '../providers/cv_providers.dart';
 import '../providers/settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -12,6 +17,10 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final settingsNotifier = ref.read(settingsProvider.notifier);
+    final subscription = ref.watch(subscriptionStatusProvider);
+    final usage = ref.watch(usageMetricsProvider);
+    final entitlement = ref.watch(entitlementServiceProvider);
+    final cvList = ref.watch(cvListProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -24,6 +33,54 @@ class SettingsScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             children: [
+              // 0. Subscription & Plans Section
+              _buildSectionCard(
+                context,
+                title: context.tr('subscription_settings_title'),
+                subtitle: context.tr('subscription_settings_desc'),
+                icon: Icons.card_membership_rounded,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          context.tr('current_plan'),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        const SizedBox(width: 10),
+                        SubscriptionBadge(tier: subscription.tier),
+                        const Spacer(),
+                        FilledButton.tonalIcon(
+                          icon: const Icon(Icons.arrow_forward, size: 16),
+                          label: Text(context.tr('view_plans')),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const PricingScreen()),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    UsageProgressIndicator(
+                      label: context.tr('cv_usage_label'),
+                      currentUsage: cvList.cvs.length,
+                      limit: entitlement.getCvLimit(subscription.tier),
+                      icon: Icons.description_outlined,
+                    ),
+                    const SizedBox(height: 12),
+                    UsageProgressIndicator(
+                      label: context.tr('ai_usage_label'),
+                      currentUsage: usage.aiOperationsUsed,
+                      limit: entitlement.getAiOperationsLimit(subscription.tier),
+                      icon: Icons.auto_awesome_outlined,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
               // 1. Interface Language Section
               _buildSectionCard(
                 context,

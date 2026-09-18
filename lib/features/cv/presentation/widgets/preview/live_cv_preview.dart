@@ -1,23 +1,17 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:printing/printing.dart';
 import '../../../../../core/localization/app_localizations.dart';
 import '../../../../pdf_export/services/pdf_generator_service.dart';
 import '../../../../pdf_export/templates/cv_template_registry.dart';
+import '../../../../subscription/presentation/providers/subscription_providers.dart';
+import '../../../../subscription/presentation/widgets/upgrade_dialog.dart';
 import '../../../domain/models/cv_model.dart';
 
 /// Professional Live CV Preview Widget
-///
-/// Features:
-/// - Reactive, debounced live PDF re-generation pipeline (smooth typing, immediate on actions)
-/// - Zero CV data duplication: directly consumes the unified CvModel
-/// - Interactive zoom controls (zoom in, zoom out, fit to width, 100% reset)
-/// - Multi-page navigation (All pages, single page jump, next/prev)
-/// - Live template switching without data loss
-/// - Live photo / no-photo layout toggle
-/// - Desktop split-screen support and responsive mobile adaptability
-class LiveCvPreview extends StatefulWidget {
+class LiveCvPreview extends ConsumerStatefulWidget {
   final CvModel cv;
   final ValueChanged<String>? onTemplateChanged;
   final ValueChanged<bool>? onTogglePhoto;
@@ -36,10 +30,10 @@ class LiveCvPreview extends StatefulWidget {
   });
 
   @override
-  State<LiveCvPreview> createState() => _LiveCvPreviewState();
+  ConsumerState<LiveCvPreview> createState() => _LiveCvPreviewState();
 }
 
-class _LiveCvPreviewState extends State<LiveCvPreview> {
+class _LiveCvPreviewState extends ConsumerState<LiveCvPreview> {
   Uint8List? _cachedPdfBytes;
   int _pageCount = 1;
   int _selectedPage = 0; // 0 = All Pages; 1..N = Single Page
@@ -189,10 +183,10 @@ class _LiveCvPreviewState extends State<LiveCvPreview> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final primaryTemplates = CvTemplateRegistry.getPrimaryTemplates();
-    final currentTemplate = primaryTemplates.firstWhere(
+    final allTemplates = CvTemplateRegistry.getAllTemplates();
+    final currentTemplate = allTemplates.firstWhere(
       (t) => t.id == widget.cv.style.templateId,
-      orElse: () => primaryTemplates.first,
+      orElse: () => allTemplates.first,
     );
 
     final showPhoto = widget.cv.personalInfo.showPhoto;
@@ -392,6 +386,19 @@ class _LiveCvPreviewState extends State<LiveCvPreview> {
                     PopupMenuButton<String>(
                       tooltip: context.tr('switch_template'),
                       onSelected: (templateId) {
+                        final tpl = CvTemplateRegistry.getTemplate(templateId);
+                        if (tpl != null && !tpl.isFree) {
+                          final status = ref.read(subscriptionStatusProvider);
+                          final entitlement = ref.read(entitlementServiceProvider);
+                          if (!entitlement.canUseTemplate(userTier: status.tier, requiredTier: tpl.requiredTier)) {
+                            UpgradeDialog.show(
+                              context,
+                              requiredTier: tpl.requiredTier,
+                              featureKey: 'feature_premium_templates',
+                            );
+                            return;
+                          }
+                        }
                         widget.onTemplateChanged?.call(templateId);
                       },
                       child: Container(
@@ -410,11 +417,15 @@ class _LiveCvPreviewState extends State<LiveCvPreview> {
                               context.tr(currentTemplate.titleKey),
                               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                             ),
+                            if (!currentTemplate.isFree) ...[
+                              const SizedBox(width: 4),
+                              Icon(Icons.lock_rounded, size: 12, color: Colors.amber.shade800),
+                            ],
                             const Icon(Icons.arrow_drop_down, size: 16),
                           ],
                         ),
                       ),
-                      itemBuilder: (ctx) => primaryTemplates.map((tpl) {
+                      itemBuilder: (ctx) => allTemplates.map((tpl) {
                         final isSelected = tpl.id == widget.cv.style.templateId;
                         return PopupMenuItem<String>(
                           value: tpl.id,
@@ -431,8 +442,14 @@ class _LiveCvPreviewState extends State<LiveCvPreview> {
                                   ),
                                 ),
                               ),
-                              if (isSelected)
+                              if (!tpl.isFree) ...[
+                                const SizedBox(width: 6),
+                                Icon(Icons.lock_rounded, size: 14, color: Colors.amber.shade800),
+                              ],
+                              if (isSelected) ...[
+                                const SizedBox(width: 6),
                                 Icon(Icons.check, size: 16, color: theme.colorScheme.primary),
+                              ],
                             ],
                           ),
                         );
