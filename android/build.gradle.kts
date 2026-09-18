@@ -33,9 +33,6 @@ subprojects {
             }
         }
     }
-    project.tasks.matching { it.name.contains("AarMetadata") }.configureEach {
-        enabled = false
-    }
 }
 
 tasks.register<Delete>("clean") {
