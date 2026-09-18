@@ -51,7 +51,7 @@ jobs:
         run: flutter test
 
       - name: Build Android APK (Release)
-        run: flutter build apk --release
+        run: flutter build apk --release --verbose
 
       - name: Verify generated APK
         run: |
