@@ -1,0 +1,78 @@
+name: Windows Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-windows:
+    name: Build Native Windows Application
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\Pub\Cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze project source
+        run: flutter analyze
+
+      - name: Run automated tests
+        run: flutter test
+
+      - name: Build Flutter Windows Application (Release)
+        run: flutter build windows --release
+
+      - name: Verify and package Windows Release
+        shell: pwsh
+        run: |
+          $releasePath = "build\windows\x64\runner\Release"
+          if (-not (Test-Path $releasePath)) {
+            # Check alternative release path for non-x64 or default runner output
+            $releasePath = "build\windows\runner\Release"
+          }
+          if (-not (Test-Path $releasePath)) {
+            Write-Error "Error: Windows release directory not found."
+            exit 1
+          }
+          Write-Host "Packaging Windows release from: $releasePath"
+          Get-ChildItem -Path $releasePath
+          Compress-Archive -Path "$releasePath\*" -DestinationPath "cv-builder-windows-release.zip" -Force
+          if (-not (Test-Path "cv-builder-windows-release.zip")) {
+            Write-Error "Error: ZIP package was not created."
+            exit 1
+          }
+          Write-Host "Successfully packaged cv-builder-windows-release.zip"
+
+      - name: Upload Windows Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cv-builder-windows-release
+          path: cv-builder-windows-release.zip
+          if-no-files-found: error

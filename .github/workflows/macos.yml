@@ -1,0 +1,72 @@
+name: macOS Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: macos-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-macos:
+    name: Build Native macOS Application
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Cache pub dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze project source
+        run: flutter analyze
+
+      - name: Run automated tests
+        run: flutter test
+
+      - name: Build Flutter macOS Application (Release)
+        run: flutter build macos --release --no-codesign
+
+      - name: Verify and package macOS Application
+        run: |
+          APP_PATH="build/macos/Build/Products/Release/cv_builder.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "Error: macOS application bundle not found at $APP_PATH."
+            exit 1
+          fi
+          echo "Found macOS application at $APP_PATH"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" cv-builder-macos-release.zip
+          if [ ! -f "cv-builder-macos-release.zip" ]; then
+            echo "Error: ZIP archive was not generated."
+            exit 1
+          fi
+          ls -lh cv-builder-macos-release.zip
+
+      - name: Upload macOS Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cv-builder-macos-release
+          path: cv-builder-macos-release.zip
+          if-no-files-found: error
