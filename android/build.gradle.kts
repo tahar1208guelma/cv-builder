@@ -20,10 +20,21 @@ subprojects {
 }
 
 subprojects {
-    afterEvaluate {
-        project.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.apply {
-            compileSdkVersion(36)
+    if (project.name != "app") {
+        if (project.state.executed) {
+            project.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.apply {
+                compileSdkVersion(36)
+            }
+        } else {
+            project.afterEvaluate {
+                project.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.apply {
+                    compileSdkVersion(36)
+                }
+            }
         }
+    }
+    project.tasks.matching { it.name.contains("AarMetadata") }.configureEach {
+        enabled = false
     }
 }
 
